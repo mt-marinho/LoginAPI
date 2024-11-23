@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Login.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
 using System.Linq;
 using System.Threading.Tasks;
 using Login.Data;
@@ -12,9 +13,11 @@ namespace Login.Controllers
     public class UserController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly PasswordHasher<User> _passwordHasher;
         public UserController(AppDbContext context)
         {
             _context = context;
+            _passwordHasher = new PasswordHasher<User>();
         }
 
         [HttpGet]
@@ -45,6 +48,8 @@ namespace Login.Controllers
                 return BadRequest("Usuário Invalido");
             }
 
+            user.Password = _passwordHasher.HashPassword(user, user.Password);
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
@@ -60,6 +65,11 @@ namespace Login.Controllers
             }
 
             _context.Entry(user).State = EntityState.Modified;
+
+            if (!string.IsNullOrEmpty(user.Password))
+            {
+                user.Password = _passwordHasher.HashPassword(user, user.Password);
+            }
 
             try
             {
